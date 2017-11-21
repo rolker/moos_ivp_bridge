@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <regex>
+#include <iomanip>
 
 ros::Publisher pub;
 ros::Publisher asv_hh_pub;
@@ -114,8 +115,17 @@ void startMOOS()
     incontent << infile.rdbuf();
     
     std::regex br("BEHAVIORS");
+    std::regex latr("LAT_ORIGIN");
+    std::regex longr("LONG_ORIGIN");
+    
+    std::stringstream latss;
+    latss << std::setprecision(15) << LatOrigin;
+    std::stringstream longss;
+    longss << std::setprecision(15) << LongOrigin;
     
     std::string outcontent = std::regex_replace(incontent.str(),br,bhvFile);
+    outcontent = std::regex_replace(outcontent,latr,latss.str());
+    outcontent = std::regex_replace(outcontent,longr,longss.str());
 
     std::string missionFile = "ros.moos";
     
@@ -142,7 +152,11 @@ void positionCallback(const asv_msgs::BasicPositionStamped::ConstPtr& inmsg)
 {
     //std::cerr << "positionCallback: " <<  initializedMOOS << std::endl;
     if(!initializedMOOS)
+    {
+        LatOrigin = inmsg->basic_position.position.latitude;
+        LongOrigin = inmsg->basic_position.position.longitude;
         startMOOS();
+    }
     double t = inmsg->header.stamp.toSec();
     comms.Notify("NAV_LAT",inmsg->basic_position.position.latitude,t);
     comms.Notify("NAV_LONG",inmsg->basic_position.position.longitude,t);
