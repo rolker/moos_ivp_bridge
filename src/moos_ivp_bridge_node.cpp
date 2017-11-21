@@ -6,6 +6,7 @@
 #include "ros/ros.h"
 #include "ros/package.h"
 #include "geographic_msgs/GeoPoint.h"
+#include "std_msgs/String.h"
 #include "asv_msgs/HeadingHold.h"
 #include "asv_msgs/BasicPositionStamped.h"
 #include "asv_msgs/HeadingStamped.h"
@@ -106,7 +107,7 @@ void startMOOS()
     geoReference = gz4d::geo::LocalENU<>(gr);
     
     std::string missionFileTemplate = ros::package::getPath("moos_ivp_bridge")+"/missions/ros.moos.template";
-    std::string bhvFile = ros::package::getPath("moos_ivp_bridge")+"/missions/portsmouth.bhv";
+    std::string bhvFile = ros::package::getPath("moos_ivp_bridge")+"/missions/ros.bhv";
 
     std::ifstream infile(missionFileTemplate);
     std::stringstream incontent;
@@ -159,6 +160,11 @@ void headingCallback(const asv_msgs::HeadingStamped::ConstPtr& inmsg)
     comms.Notify("NAV_HEADING",gz4d::Degrees(inmsg->heading.heading),t);
 }
 
+void waypointUpdateCallback(const std_msgs::String::ConstPtr& inmsg)
+{
+    comms.Notify("WPT_UPDATE",inmsg->data);
+}
+
 int main(int argc, char **argv)
 {
     last_lat_time = 0.0;
@@ -173,6 +179,7 @@ int main(int argc, char **argv)
     
     ros::Subscriber psub = n.subscribe("/sensor/vehicle/position",10,positionCallback);
     ros::Subscriber hsub = n.subscribe("/sensor/vehicle/heading",10,headingCallback);
+    ros::Subscriber wptUpdatesub = n.subscribe("/moos/wpt_updates",10,waypointUpdateCallback);
 
     comms.SetOnMailCallBack(OnMail,&comms);
     comms.SetOnConnectCallBack(OnConnect,&comms);

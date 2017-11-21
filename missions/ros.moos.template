@@ -172,13 +172,6 @@ ProcessConfig = pMarineViewer
   procs_font_size      = medium
   appcast_font_size    = small
   
-  //datum_viewable = true
-  //datum_size     = 18
-  //gui_size = small
-
-  //left_context[survey-point] = DEPLOY=true
-  //left_context[survey-point] = MOOS_MANUAL_OVERIDE=false
-  //left_context[survey-point] = RETURN=false
   left_context[view_point] = VIEW_POINT = x$(XPOS),y=$(YPOS),label=hello
   left_context[update_return] = RETURN_UPDATE = points= $(XPOS),$(YPOS)
  
@@ -200,15 +193,11 @@ ProcessConfig = pMarineViewer
   scope  = MVIEWER_LCLICK
   scope  = MVIEWER_RCLICK
 
-  button_one = DEPLOY # DEPLOY=true
+  button_one = ACTIVE # ACTIVE=true
   button_one = MOOS_MANUAL_OVERIDE=false # RETURN=false
-  button_two = RETURN # RETURN=true
-  button_three = CONTINUE # CONTINUE=true
 
-  action  = MENU_KEY=deploy # DEPLOY = true # RETURN = false
-  action+ = MENU_KEY=deploy # MOOS_MANUAL_OVERIDE=false
-  action  = RETURN=true
-  action  = UPDATES_RETURN=speed=1.4
+  action  = MENU_KEY=active # ACTIVE = true # RETURN = false
+  action+ = MENU_KEY=active # MOOS_MANUAL_OVERIDE=false
 }
 
 //------------------------------------------
