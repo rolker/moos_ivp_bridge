@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="moos_ivp_bridge" type="moos_ivp_bridge_node" name="moos_ivp_bridge"/>
+</launch>
+
+
