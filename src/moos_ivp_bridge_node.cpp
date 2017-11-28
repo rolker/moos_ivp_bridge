@@ -5,11 +5,11 @@
 
 #include "ros/ros.h"
 #include "ros/package.h"
-#include "geographic_msgs/GeoPoint.h"
+#include "geographic_msgs/GeoPointStamped.h"
 #include "std_msgs/String.h"
-#include "asv_msgs/HeadingHold.h"
-#include "asv_msgs/BasicPositionStamped.h"
-#include "asv_msgs/HeadingStamped.h"
+#include "std_msgs/Bool.h"
+#include "geometry_msgs/TwistStamped.h"
+#include "mission_plan/NavEulerStamped.h"
 #include "MOOS/libMOOS/Comms/MOOSAsyncCommClient.h"
 
 #include "moos_ivp_bridge/gz4d_geo.h"
@@ -19,7 +19,9 @@
 #include <iomanip>
 
 ros::Publisher pub;
-ros::Publisher asv_hh_pub;
+ros::Publisher desired_heading_pub;
+ros::Publisher desired_speed_pub;
+ros::Publisher appcast_pub;
 
 MOOS::MOOSAsyncCommClient comms;
 
@@ -41,9 +43,9 @@ bool OnConnect(void * param)
 {
     CMOOSCommClient* c = reinterpret_cast<CMOOSCommClient*>(param);
     c->Register("DESIRED_HEADING",0.0);
-    c->Register("DESIRED_THRUST",0.0);
-    //c->Register("NAV_LAT",0.0);
-    //c->Register("NAV_LONG",0.0);
+    c->Register("DESIRED_SPEED",0.0);
+    c->Register("APPCAST",0.0);
+    comms.Notify("MOOS_MANUAL_OVERIDE","false");
     return true;
 }
 
@@ -56,43 +58,25 @@ bool OnMail(void *param)
     {
         
         auto t = m.GetTime();
-        if(m.IsName("NAV_LAT") || m.IsName("NAV_LONG"))
+        if(m.IsName("DESIRED_HEADING"))
         {
-            if(m.IsName("NAV_LAT"))
-            {
-                lat = m.GetDouble();
-                last_lat_time = t;
-            }
-            if(m.IsName("NAV_LONG"))
-            {
-                lon = m.GetDouble();
-                last_lon_time = t;
-            }
-            if (last_lat_time == last_lon_time)
-            {
-                geographic_msgs::GeoPoint gp;
-                gp.altitude = 0.0;
-                gp.latitude = lat;
-                gp.longitude = lon;
-                pub.publish(gp);
-            }
+            mission_plan::NavEulerStamped nes;
+            nes.orientation.heading = m.GetDouble();
+            nes.header.stamp.fromSec(t);
+            desired_heading_pub.publish(nes);
         }
-        else
+        if(m.IsName("DESIRED_SPEED"))
         {
-            m.Trace();
-            if(m.IsName("DESIRED_HEADING"))
-            {
-                desired_heading = m.GetDouble();
-            }
-            if(m.IsName("DESIRED_THRUST"))
-            {
-                asv_msgs::HeadingHold asvMsg;
-                asvMsg.heading.heading =  M_PI*desired_heading/180.0;
-                asvMsg.thrust.type = asv_msgs::Thrust::THRUST_THROTTLE;
-                asvMsg.thrust.value = m.GetDouble()/100.0;
-                asvMsg.header.stamp.fromSec(t);
-                asv_hh_pub.publish(asvMsg);
-            }
+            geometry_msgs::TwistStamped ts;
+            ts.twist.linear.x = m.GetDouble();
+            ts.header.stamp.fromSec(t);
+            desired_speed_pub.publish(ts);
+        }
+        if(m.IsName("APPCAST"))
+        {
+            std_msgs::String s;
+            s.data = m.GetAsString();
+            appcast_pub.publish(s);
         }
     }
     
@@ -148,35 +132,48 @@ void startMOOS()
     
 }
 
-void positionCallback(const asv_msgs::BasicPositionStamped::ConstPtr& inmsg)
+void positionCallback(const geographic_msgs::GeoPointStamped::ConstPtr& inmsg)
 {
     //std::cerr << "positionCallback: " <<  initializedMOOS << std::endl;
     if(!initializedMOOS)
     {
-        LatOrigin = inmsg->basic_position.position.latitude;
-        LongOrigin = inmsg->basic_position.position.longitude;
+        LatOrigin = inmsg->position.latitude;
+        LongOrigin = inmsg->position.longitude;
         startMOOS();
     }
     double t = inmsg->header.stamp.toSec();
-    comms.Notify("NAV_LAT",inmsg->basic_position.position.latitude,t);
-    comms.Notify("NAV_LONG",inmsg->basic_position.position.longitude,t);
-    comms.Notify("NAV_SPEED",inmsg->basic_position.sog,t);
+    comms.Notify("NAV_LAT",inmsg->position.latitude,t);
+    comms.Notify("NAV_LONG",inmsg->position.longitude,t);
     
-    gz4d::Point<double> position = geoReference.toLocal(gz4d::geo::Point<double,gz4d::geo::WGS84::ECEF>(gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon>(inmsg->basic_position.position.latitude,inmsg->basic_position.position.longitude,0.0)));
+    gz4d::Point<double> position = geoReference.toLocal(gz4d::geo::Point<double,gz4d::geo::WGS84::ECEF>(gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon>(inmsg->position.latitude,inmsg->position.longitude,0.0)));
     
     comms.Notify("NAV_X",position[0],t);
     comms.Notify("NAV_Y",position[1],t);
 }
 
-void headingCallback(const asv_msgs::HeadingStamped::ConstPtr& inmsg)
+void headingCallback(const mission_plan::NavEulerStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
-    comms.Notify("NAV_HEADING",gz4d::Degrees(inmsg->heading.heading),t);
+    comms.Notify("NAV_HEADING",inmsg->orientation.heading,t);
+}
+
+void sogCallback(const geometry_msgs::TwistStamped::ConstPtr& inmsg)
+{
+    double t = inmsg->header.stamp.toSec();
+    comms.Notify("NAV_SPEED",inmsg->twist.linear.x,t);
 }
 
 void waypointUpdateCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("WPT_UPDATE",inmsg->data);
+}
+
+void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
+{
+    if(inmsg->data)
+        comms.Notify("ACTIVE","true");
+    else
+        comms.Notify("ACTIVE","false");
 }
 
 int main(int argc, char **argv)
@@ -189,11 +186,15 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     
     pub = n.advertise<geographic_msgs::GeoPoint>("/moos/nav_point",10);
-    asv_hh_pub = n.advertise<asv_msgs::HeadingHold>("/control/drive/heading_hold",1);
+    desired_heading_pub = n.advertise<mission_plan::NavEulerStamped>("/moos/desired_heading",1);
+    desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
+    appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
     
-    ros::Subscriber psub = n.subscribe("/sensor/vehicle/position",10,positionCallback);
-    ros::Subscriber hsub = n.subscribe("/sensor/vehicle/heading",10,headingCallback);
+    ros::Subscriber psub = n.subscribe("/position",10,positionCallback);
+    ros::Subscriber hsub = n.subscribe("/heading",10,headingCallback);
+    ros::Subscriber sogsub = n.subscribe("/sog",10,sogCallback);
     ros::Subscriber wptUpdatesub = n.subscribe("/moos/wpt_updates",10,waypointUpdateCallback);
+    ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
 
     comms.SetOnMailCallBack(OnMail,&comms);
     comms.SetOnConnectCallBack(OnConnect,&comms);

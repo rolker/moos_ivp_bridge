@@ -9,7 +9,7 @@ project(moos_ivp_bridge)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geographic_msgs
-  asv_msgs
+  mission_plan
   roscpp
   roslib
 )
@@ -110,7 +110,7 @@ include_directories ( ${MOOS_INCLUDE_DIRS} ${MOOS_DEPEND_INCLUDE_DIRS} )
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES moos_ivp_bridge
-  CATKIN_DEPENDS geographic_msgs asv_msgs roscpp
+  CATKIN_DEPENDS geographic_msgs mission_plan roscpp
 #  DEPENDS system_lib
 )
 
