@@ -176,6 +176,14 @@ void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
         comms.Notify("ACTIVE","false");
 }
 
+void appcastRequestCallback(const ros::WallTimerEvent& event)
+{
+    std::stringstream req;
+    
+    req << "node=moos_ivp_ros,app=pHelmIvP,duration=3.0,key=moos_ivp_bridge,thresh=any";
+    comms.Notify("APPCAST_REQ",req.str());
+}
+
 int main(int argc, char **argv)
 {
     last_lat_time = 0.0;
@@ -195,15 +203,18 @@ int main(int argc, char **argv)
     ros::Subscriber sogsub = n.subscribe("/sog",10,sogCallback);
     ros::Subscriber wptUpdatesub = n.subscribe("/moos/wpt_updates",10,waypointUpdateCallback);
     ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
+    
+    ros::WallTimer appcastRequestTimer = n.createWallTimer(ros::WallDuration(1.0),appcastRequestCallback);
 
     comms.SetOnMailCallBack(OnMail,&comms);
     comms.SetOnConnectCallBack(OnConnect,&comms);
     
     comms.Run("localhost",9000,"moos_ivp_bridge");
-   
     
-    
-    ros::spin();
+    while(ros::ok())
+    {
+        ros::spinOnce();
+    }
     
     return 0;
     
