@@ -22,6 +22,7 @@ ros::Publisher pub;
 ros::Publisher desired_heading_pub;
 ros::Publisher desired_speed_pub;
 ros::Publisher appcast_pub;
+ros::Publisher origin_pub;
 
 MOOS::MOOSAsyncCommClient comms;
 
@@ -184,6 +185,17 @@ void appcastRequestCallback(const ros::WallTimerEvent& event)
     comms.Notify("APPCAST_REQ",req.str());
 }
 
+void originCallback(const ros::WallTimerEvent& event)
+{
+    if(initializedMOOS)
+    {
+        geographic_msgs::GeoPoint gp;
+        gp.latitude = LatOrigin;
+        gp.longitude = LongOrigin;
+        origin_pub.publish(gp);
+    }
+}
+
 int main(int argc, char **argv)
 {
     last_lat_time = 0.0;
@@ -197,6 +209,7 @@ int main(int argc, char **argv)
     desired_heading_pub = n.advertise<mission_plan::NavEulerStamped>("/moos/desired_heading",1);
     desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
     appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
+    origin_pub = n.advertise<geographic_msgs::GeoPoint>("/moos/origin",1);
     
     ros::Subscriber psub = n.subscribe("/position",10,positionCallback);
     ros::Subscriber hsub = n.subscribe("/heading",10,headingCallback);
@@ -205,6 +218,8 @@ int main(int argc, char **argv)
     ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
     
     ros::WallTimer appcastRequestTimer = n.createWallTimer(ros::WallDuration(1.0),appcastRequestCallback);
+    
+    ros::WallTimer originTimer = n.createWallTimer(ros::WallDuration(1.0),originCallback);
 
     comms.SetOnMailCallBack(OnMail,&comms);
     comms.SetOnConnectCallBack(OnConnect,&comms);
