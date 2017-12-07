@@ -229,6 +229,7 @@ int main(int argc, char **argv)
     while(ros::ok())
     {
         ros::spinOnce();
+        ros::Duration(0.001).sleep();
     }
     
     return 0;
