@@ -2,6 +2,7 @@
     <node pkg="moos_ivp_bridge" type="moos_ivp_bridge_node" name="moos_ivp_bridge"/>
     <node pkg="asv_helm" type="asv_helm_node" name="asv_helm"/>
     <node pkg="zmq_bridge" type="agent_node" name="zmq_agent"/>
+    <node pkg="remote_control" type="remote_control.py" name="remote_control"/>
 </launch>
 
 

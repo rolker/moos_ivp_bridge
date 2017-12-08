@@ -177,6 +177,12 @@ void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
         comms.Notify("ACTIVE","false");
 }
 
+void helmModeCallback(const std_msgs::String::ConstPtr& inmsg)
+{
+      comms.Notify("HELM_MODE",inmsg->data);
+}
+
+
 void appcastRequestCallback(const ros::WallTimerEvent& event)
 {
     std::stringstream req;
@@ -216,6 +222,7 @@ int main(int argc, char **argv)
     ros::Subscriber sogsub = n.subscribe("/sog",10,sogCallback);
     ros::Subscriber wptUpdatesub = n.subscribe("/moos/wpt_updates",10,waypointUpdateCallback);
     ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
+    ros::Subscriber helmmodesub = n.subscribe("/helm_mode",10,helmModeCallback);
     
     ros::WallTimer appcastRequestTimer = n.createWallTimer(ros::WallDuration(1.0),appcastRequestCallback);
     

@@ -3,6 +3,7 @@
     <node pkg="asv_helm" type="asv_helm_node" name="asv_helm"/>
     <node pkg="zmq_bridge" type="agent_node" name="zmq_agent"/>
     <node pkg="asv_sim" type="asv_sim" name="asv_sim"/>
+    <node pkg="remote_control" type="remote_control.py" name="remote_control"/>
 </launch>
 
 

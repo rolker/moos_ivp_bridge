@@ -1,6 +1,7 @@
 //--------    FILE: ros.bhv   -------------
 
 initialize   ACTIVE = false
+initialize   HELM_MODE = standby
 
 //----------------------------------------------
 Behavior = BHV_Waypoint
@@ -8,6 +9,7 @@ Behavior = BHV_Waypoint
   name      = ros_waypoint
   pwt       = 100
   condition = ACTIVE = true
+  condition = HELM_MODE = survey
 
   idleflag  = WPTING = idle
   runflag   = WPTING = running
