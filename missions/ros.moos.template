@@ -17,6 +17,9 @@ TERM_REPORTING = true
 LatOrigin  = LAT_ORIGIN
 LongOrigin = LONG_ORIGIN
 
+// Global log root directory
+GlobalLogPath = ./moos/
+
 //------------------------------------------
 // Antler configuration  block
 ProcessConfig = ANTLER
