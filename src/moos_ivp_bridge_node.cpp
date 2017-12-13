@@ -17,6 +17,7 @@
 #include <fstream>
 #include <regex>
 #include <iomanip>
+#include "boost/date_time/posix_time/posix_time.hpp"
 
 ros::Publisher pub;
 ros::Publisher desired_heading_pub;
@@ -117,6 +118,14 @@ void startMOOS()
     std::ofstream outfile(missionFile);
     
     outfile << outcontent;
+    
+    boost::posix_time::ptime now = ros::WallTime::now().toBoost();
+    std::string iso_now = boost::posix_time::to_iso_extended_string(now);
+    
+    std::string missionFileStamped = "ros-"+iso_now+".moos";
+    
+    std::ofstream outfileStamped(missionFileStamped);
+    outfileStamped << outcontent;
     
     char* argv[3];
     argv[2] = nullptr;
