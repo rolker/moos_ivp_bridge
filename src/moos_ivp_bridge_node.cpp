@@ -127,7 +127,7 @@ void startMOOS()
     outfile << outcontent;
     
     boost::posix_time::ptime now = ros::WallTime::now().toBoost();
-    std::string iso_now = boost::posix_time::to_iso_extended_string(now);
+    std::string iso_now = std::regex_replace(boost::posix_time::to_iso_extended_string(now),std::regex(":"),"_");
     
     std::string missionFileStamped = "ros-"+iso_now+".moos";
     
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
     ros::Subscriber helmmodesub = n.subscribe("/helm_mode",10,helmModeCallback);
     
     boost::posix_time::ptime now = ros::WallTime::now().toBoost();
-    std::string iso_now = boost::posix_time::to_iso_extended_string(now);
+    std::string iso_now = std::regex_replace(boost::posix_time::to_iso_extended_string(now),std::regex(":"),"_");
     
     std::string log_filename = "nodes/moos_ivp_bridge-"+iso_now+".bag";
     log_bag.open(log_filename, rosbag::bagmode::Write);
