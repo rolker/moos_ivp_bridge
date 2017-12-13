@@ -24,7 +24,7 @@ ProcessConfig = ANTLER
   MSBetweenLaunches = 200
 
   Run = MOOSDB          @ NewConsole = false
-  //Run = pLogger         @ NewConsole = false
+  Run = pLogger         @ NewConsole = false
   //Run = uSimMarine	    @ NewConsole = false
   //Run = pMarinePID      @ NewConsole = false
   Run = pHelmIvP        @ NewConsole = false
@@ -109,7 +109,7 @@ ProcessConfig = pHelmIvP
 
   behaviors  = BEHAVIORS
   domain     = course:0:359:360
-  domain     = speed:0:4:21
+  domain     = speed:0:5.0:51
 }
 
 //------------------------------------------

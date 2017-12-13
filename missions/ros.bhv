@@ -20,12 +20,12 @@ Behavior = BHV_Waypoint
   perpetual = true
 
                lead = 8
-        lead_damper = 1
-              speed = 2   // meters per second
-       capture_line = true
-     capture_radius = 5.0
+        lead_damper = 2
+              speed = 5.0   // meters per second
+       capture_line = false
+     capture_radius = 3.0
         slip_radius = 15.0
-             points = 0.0,0.0 : 20.0,50.0
+             points = 0.0,0.0 : 1.0,1.0
              repeat = 100
 
     visual_hints = nextpt_color=yellow
