@@ -3,6 +3,7 @@
     <node pkg="asv_helm" type="asv_helm_node" name="asv_helm"/>
     <node pkg="zmq_bridge" type="agent_node" name="zmq_agent"/>
     <node pkg="remote_control" type="remote_control.py" name="remote_control" args="address=192.168.100.112"/>
+    <node pkg="westmountainradio" type="west_mountain_radio_node.py" name="west_mountain_radio"/>
 </launch>
 
 
