@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   mission_plan
   roscpp
   roslib
+  rosbag
 )
 
 ## System dependencies are found with CMake's conventions

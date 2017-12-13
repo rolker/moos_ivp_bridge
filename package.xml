@@ -52,12 +52,15 @@
   <build_depend>geographic_msgs</build_depend>
   <build_depend>mission_plan</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>rosbag</build_depend>
   <build_export_depend>geographic_msgs</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>mission_plan</build_export_depend>
+  <build_export_depend>rosbag</build_export_depend>
   <exec_depend>geographic_msgs</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>mission_plan</exec_depend>
+  <exec_depend>rosbag</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

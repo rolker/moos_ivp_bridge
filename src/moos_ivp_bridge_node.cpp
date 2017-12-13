@@ -5,6 +5,7 @@
 
 #include "ros/ros.h"
 #include "ros/package.h"
+#include "rosbag/bag.h"
 #include "geographic_msgs/GeoPointStamped.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
@@ -24,6 +25,8 @@ ros::Publisher desired_heading_pub;
 ros::Publisher desired_speed_pub;
 ros::Publisher appcast_pub;
 ros::Publisher origin_pub;
+
+rosbag::Bag log_bag;
 
 MOOS::MOOSAsyncCommClient comms;
 
@@ -66,6 +69,8 @@ bool OnMail(void *param)
             nes.orientation.heading = m.GetDouble();
             nes.header.stamp.fromSec(t);
             desired_heading_pub.publish(nes);
+            log_bag.write("/moos/desired_heading",ros::Time::now(),nes);
+
         }
         if(m.IsName("DESIRED_SPEED"))
         {
@@ -73,12 +78,14 @@ bool OnMail(void *param)
             ts.twist.linear.x = m.GetDouble();
             ts.header.stamp.fromSec(t);
             desired_speed_pub.publish(ts);
+            log_bag.write("/moos/desired_speed",ros::Time::now(),ts);
         }
         if(m.IsName("APPCAST"))
         {
             std_msgs::String s;
             s.data = m.GetAsString();
             appcast_pub.publish(s);
+            log_bag.write("/moos/appcast",ros::Time::now(),s);
         }
     }
     
@@ -159,23 +166,28 @@ void positionCallback(const geographic_msgs::GeoPointStamped::ConstPtr& inmsg)
     
     comms.Notify("NAV_X",position[0],t);
     comms.Notify("NAV_Y",position[1],t);
+    log_bag.write("/position",ros::Time::now(),*inmsg);
+
 }
 
 void headingCallback(const mission_plan::NavEulerStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
     comms.Notify("NAV_HEADING",inmsg->orientation.heading,t);
+    log_bag.write("/heading",ros::Time::now(),*inmsg);
 }
 
 void sogCallback(const geometry_msgs::TwistStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
     comms.Notify("NAV_SPEED",inmsg->twist.linear.x,t);
+    log_bag.write("/sog",ros::Time::now(),*inmsg);
 }
 
 void waypointUpdateCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("WPT_UPDATE",inmsg->data);
+    log_bag.write("/moos/wpt_updates",ros::Time::now(),*inmsg);
 }
 
 void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
@@ -184,11 +196,13 @@ void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
         comms.Notify("ACTIVE","true");
     else
         comms.Notify("ACTIVE","false");
+    log_bag.write("/active",ros::Time::now(),*inmsg);
 }
 
 void helmModeCallback(const std_msgs::String::ConstPtr& inmsg)
 {
-      comms.Notify("HELM_MODE",inmsg->data);
+    comms.Notify("HELM_MODE",inmsg->data);
+    log_bag.write("/helm_mode",ros::Time::now(),*inmsg);
 }
 
 
@@ -208,6 +222,7 @@ void originCallback(const ros::WallTimerEvent& event)
         gp.latitude = LatOrigin;
         gp.longitude = LongOrigin;
         origin_pub.publish(gp);
+        log_bag.write("/moos/origin",ros::Time::now(),gp);
     }
 }
 
@@ -233,6 +248,12 @@ int main(int argc, char **argv)
     ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
     ros::Subscriber helmmodesub = n.subscribe("/helm_mode",10,helmModeCallback);
     
+    boost::posix_time::ptime now = ros::WallTime::now().toBoost();
+    std::string iso_now = boost::posix_time::to_iso_extended_string(now);
+    
+    std::string log_filename = "nodes/moos_ivp_bridge-"+iso_now+".bag";
+    log_bag.open(log_filename, rosbag::bagmode::Write);
+    
     ros::WallTimer appcastRequestTimer = n.createWallTimer(ros::WallDuration(1.0),appcastRequestCallback);
     
     ros::WallTimer originTimer = n.createWallTimer(ros::WallDuration(1.0),originCallback);
@@ -247,6 +268,8 @@ int main(int argc, char **argv)
         ros::spinOnce();
         ros::Duration(0.001).sleep();
     }
+    
+    log_bag.close();
     
     return 0;
     
