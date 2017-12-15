@@ -35,3 +35,22 @@ Behavior = BHV_Waypoint
     visual_hints = vertex_size=5, edge_size=1
 }
 
+//----------------------------------------------
+Behavior = BHV_Loiter
+{
+  name      = loiter
+  priority  = 100
+  condition = HELM_MODE==loiter
+  updates   = LOITER_UPDATE
+  center_activate = true
+
+         speed = 1.0
+     clockwise = false
+        radius = 5.0
+     nm_radius = 25.0
+       polygon = format=radial, x=0, y=0, radius=5, pts=6, snap=1
+  visual_hints = nextpt_color=yellow, nextpt_lcolor=khaki
+  visual_hints = edge_color=white, vertex_color=invisible
+  visual_hints = edge_size=1, vertex_size=0, label=LOITER_POLYGON
+  visual_hints = nextpt_vertex_size=5
+}
