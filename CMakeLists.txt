@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
   rosbag
+  project11
 )
 
 ## System dependencies are found with CMake's conventions
@@ -111,7 +112,7 @@ include_directories ( ${MOOS_INCLUDE_DIRS} ${MOOS_DEPEND_INCLUDE_DIRS} )
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES moos_ivp_bridge
-  CATKIN_DEPENDS geographic_msgs mission_plan roscpp
+  CATKIN_DEPENDS project11 geographic_msgs mission_plan roscpp
 #  DEPENDS system_lib
 )
 

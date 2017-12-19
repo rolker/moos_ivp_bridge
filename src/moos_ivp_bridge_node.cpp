@@ -5,7 +5,7 @@
 
 #include "ros/ros.h"
 #include "ros/package.h"
-#include "rosbag/bag.h"
+
 #include "geographic_msgs/GeoPointStamped.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
@@ -14,11 +14,11 @@
 #include "MOOS/libMOOS/Comms/MOOSAsyncCommClient.h"
 
 #include "moos_ivp_bridge/gz4d_geo.h"
+#include "project11/mutex_protected_bag_writer.h"
 
 #include <fstream>
 #include <regex>
 #include <iomanip>
-#include <mutex>
 #include "boost/date_time/posix_time/posix_time.hpp"
 
 ros::Publisher pub;
@@ -27,9 +27,7 @@ ros::Publisher desired_speed_pub;
 ros::Publisher appcast_pub;
 ros::Publisher origin_pub;
 
-rosbag::Bag log_bag;
-std::mutex log_mutex;
-
+MutexProtectedBagWriter log_bag;
 
 MOOS::MOOSAsyncCommClient comms;
 
@@ -47,12 +45,6 @@ gz4d::geo::LocalENU<> geoReference;
 
 bool initializedMOOS = false;
 
-
-template <class T> void write_log(std::string const &topic, ros::Time const &time, T const &msg)
-{
-    std::lock_guard<std::mutex> lock(log_mutex);
-    log_bag.write(topic,time,msg);
-}
 
 bool OnConnect(void * param)
 {
@@ -79,7 +71,7 @@ bool OnMail(void *param)
             nes.orientation.heading = m.GetDouble();
             nes.header.stamp.fromSec(t);
             desired_heading_pub.publish(nes);
-            write_log("/moos/desired_heading",ros::Time::now(),nes);
+            log_bag.write("/moos/desired_heading",ros::Time::now(),nes);
 
         }
         if(m.IsName("DESIRED_SPEED"))
@@ -89,14 +81,14 @@ bool OnMail(void *param)
             ts.header.stamp.fromSec(t);
             desired_speed_pub.publish(ts);
             //std::cerr << ts << std::endl;
-            write_log("/moos/desired_speed",ros::Time::now(),ts);
+            log_bag.write("/moos/desired_speed",ros::Time::now(),ts);
         }
         if(m.IsName("APPCAST"))
         {
             std_msgs::String s;
             s.data = m.GetAsString();
             appcast_pub.publish(s);
-            write_log("/moos/appcast",ros::Time::now(),s);
+            log_bag.write("/moos/appcast",ros::Time::now(),s);
         }
     }
     
@@ -177,7 +169,7 @@ void positionCallback(const geographic_msgs::GeoPointStamped::ConstPtr& inmsg)
     
     comms.Notify("NAV_X",position[0],t);
     comms.Notify("NAV_Y",position[1],t);
-    write_log("/position",ros::Time::now(),*inmsg);
+    log_bag.write("/position",ros::Time::now(),*inmsg);
 
 }
 
@@ -185,26 +177,26 @@ void headingCallback(const mission_plan::NavEulerStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
     comms.Notify("NAV_HEADING",inmsg->orientation.heading,t);
-    write_log("/heading",ros::Time::now(),*inmsg);
+    log_bag.write("/heading",ros::Time::now(),*inmsg);
 }
 
 void sogCallback(const geometry_msgs::TwistStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
     comms.Notify("NAV_SPEED",inmsg->twist.linear.x,t);
-    write_log("/sog",ros::Time::now(),*inmsg);
+    log_bag.write("/sog",ros::Time::now(),*inmsg);
 }
 
 void waypointUpdateCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("WPT_UPDATE",inmsg->data);
-    write_log("/moos/wpt_updates",ros::Time::now(),*inmsg);
+    log_bag.write("/moos/wpt_updates",ros::Time::now(),*inmsg);
 }
 
 void loiterUpdateCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("LOITER_UPDATE",inmsg->data);
-    write_log("/moos/loiter_updates",ros::Time::now(),*inmsg);
+    log_bag.write("/moos/loiter_updates",ros::Time::now(),*inmsg);
 }
 
 void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
@@ -213,13 +205,13 @@ void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
         comms.Notify("ACTIVE","true");
     else
         comms.Notify("ACTIVE","false");
-    write_log("/active",ros::Time::now(),*inmsg);
+    log_bag.write("/active",ros::Time::now(),*inmsg);
 }
 
 void helmModeCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("HELM_MODE",inmsg->data);
-    write_log("/helm_mode",ros::Time::now(),*inmsg);
+    log_bag.write("/helm_mode",ros::Time::now(),*inmsg);
 }
 
 
@@ -239,7 +231,7 @@ void originCallback(const ros::WallTimerEvent& event)
         gp.latitude = LatOrigin;
         gp.longitude = LongOrigin;
         origin_pub.publish(gp);
-        write_log("/moos/origin",ros::Time::now(),gp);
+        log_bag.write("/moos/origin",ros::Time::now(),gp);
     }
 }
 
