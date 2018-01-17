@@ -13,7 +13,7 @@
 #include "mission_plan/NavEulerStamped.h"
 #include "MOOS/libMOOS/Comms/MOOSAsyncCommClient.h"
 
-#include "moos_ivp_bridge/gz4d_geo.h"
+#include "project11/gz4d_geo.h"
 #include "project11/mutex_protected_bag_writer.h"
 
 #include <fstream>
