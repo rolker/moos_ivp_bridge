@@ -6,7 +6,7 @@
 #include "ros/ros.h"
 #include "ros/package.h"
 
-#include "geographic_msgs/GeoPointStamped.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
 #include "geometry_msgs/TwistStamped.h"
@@ -21,7 +21,6 @@
 #include <iomanip>
 #include "boost/date_time/posix_time/posix_time.hpp"
 
-ros::Publisher pub;
 ros::Publisher desired_heading_pub;
 ros::Publisher desired_speed_pub;
 ros::Publisher appcast_pub;
@@ -30,20 +29,7 @@ MutexProtectedBagWriter log_bag;
 
 MOOS::MOOSAsyncCommClient comms;
 
-double lat, lon;
-double last_lat_time;
-double last_lon_time;
-double desired_heading;
-
-// HACK
-// CCOM Pier
-double LatOrigin  = 43.071959194444446;
-double LongOrigin = -70.711610833333339;
-
-gz4d::geo::LocalENU<> geoReference;
-
 bool initializedMOOS = false;
-
 
 bool OnConnect(void * param)
 {
@@ -97,10 +83,6 @@ bool OnMail(void *param)
 
 void startMOOS()
 {
-
-    gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon> gr(LatOrigin,LongOrigin,0.0);
-    geoReference = gz4d::geo::LocalENU<>(gr);
-    
     std::string missionFileTemplate = ros::package::getPath("moos_ivp_bridge")+"/missions/ros.moos.template";
     std::string bhvFile = ros::package::getPath("moos_ivp_bridge")+"/missions/ros.bhv";
 
@@ -109,17 +91,9 @@ void startMOOS()
     incontent << infile.rdbuf();
     
     std::regex br("BEHAVIORS");
-    std::regex latr("LAT_ORIGIN");
-    std::regex longr("LONG_ORIGIN");
     
-    std::stringstream latss;
-    latss << std::setprecision(15) << LatOrigin;
-    std::stringstream longss;
-    longss << std::setprecision(15) << LongOrigin;
     
     std::string outcontent = std::regex_replace(incontent.str(),br,bhvFile);
-    outcontent = std::regex_replace(outcontent,latr,latss.str());
-    outcontent = std::regex_replace(outcontent,longr,longss.str());
 
     std::string missionFile = "ros.moos";
     
@@ -150,30 +124,16 @@ void startMOOS()
     initializedMOOS = true;
 }
 
-void originCallback(const geographic_msgs::GeoPoint::ConstPtr& inmsg)
-{
-    if(!initializedMOOS)
-    {
-        LatOrigin = inmsg->latitude;
-        LongOrigin = inmsg->longitude;
-        startMOOS();
-    }
-}
-
-void positionCallback(const geographic_msgs::GeoPointStamped::ConstPtr& inmsg)
+void positionCallback(const geometry_msgs::PoseStamped::ConstPtr& inmsg)
 {
     if(initializedMOOS)
     {
         double t = inmsg->header.stamp.toSec();
-        //comms.Notify("NAV_LAT",inmsg->position.latitude,t);
-        //comms.Notify("NAV_LONG",inmsg->position.longitude,t);
         
-        gz4d::Point<double> position = geoReference.toLocal(gz4d::geo::Point<double,gz4d::geo::WGS84::ECEF>(gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon>(inmsg->position.latitude,inmsg->position.longitude,0.0)));
-        
-        comms.Notify("NAV_X",position[0],t);
-        comms.Notify("NAV_Y",position[1],t);
+        comms.Notify("NAV_X",inmsg->pose.position.x,t);
+        comms.Notify("NAV_Y",inmsg->pose.position.y,t);
     }
-    log_bag.write("/position",ros::Time::now(),*inmsg);
+    log_bag.write("/position_map",ros::Time::now(),*inmsg);
 
 }
 
@@ -229,26 +189,20 @@ void appcastRequestCallback(const ros::WallTimerEvent& event)
 
 int main(int argc, char **argv)
 {
-    last_lat_time = 0.0;
-    last_lon_time = 0.0;
-    desired_heading = 0.0;
-    
     ros::init(argc, argv, "moos_ivp_bridge_node");
     ros::NodeHandle n;
     
-    pub = n.advertise<geographic_msgs::GeoPoint>("/moos/nav_point",10);
     desired_heading_pub = n.advertise<mission_plan::NavEulerStamped>("/moos/desired_heading",1);
     desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
     appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
     
-    ros::Subscriber psub = n.subscribe("/position",10,positionCallback);
+    ros::Subscriber psub = n.subscribe("/position_map",10,positionCallback);
     ros::Subscriber hsub = n.subscribe("/heading",10,headingCallback);
     ros::Subscriber sogsub = n.subscribe("/sog",10,sogCallback);
     ros::Subscriber wptUpdatesub = n.subscribe("/moos/wpt_updates",10,waypointUpdateCallback);
     ros::Subscriber loiterUpdatesub = n.subscribe("/moos/loiter_updates",10,loiterUpdateCallback);
     ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
     ros::Subscriber helmmodesub = n.subscribe("/helm_mode",10,helmModeCallback);
-    ros::Subscriber originsub = n.subscribe("/origin",10,originCallback);
     
     boost::posix_time::ptime now = ros::WallTime::now().toBoost();
     std::string iso_now = std::regex_replace(boost::posix_time::to_iso_extended_string(now),std::regex(":"),"-");
@@ -263,11 +217,9 @@ int main(int argc, char **argv)
     
     comms.Run("localhost",9000,"moos_ivp_bridge");
     
-    while(ros::ok())
-    {
-        ros::spinOnce();
-        ros::Duration(0.001).sleep();
-    }
+    startMOOS();
+    
+    ros::spin();
     
     log_bag.close();
     
