@@ -25,7 +25,6 @@ ros::Publisher pub;
 ros::Publisher desired_heading_pub;
 ros::Publisher desired_speed_pub;
 ros::Publisher appcast_pub;
-ros::Publisher origin_pub;
 
 MutexProtectedBagWriter log_bag;
 
@@ -98,8 +97,7 @@ bool OnMail(void *param)
 
 void startMOOS()
 {
-    initializedMOOS = true;
-    
+
     gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon> gr(LatOrigin,LongOrigin,0.0);
     geoReference = gz4d::geo::LocalENU<>(gr);
     
@@ -149,26 +147,32 @@ void startMOOS()
     {
         execvp("pAntler",argv);
     }
-    
+    initializedMOOS = true;
+}
+
+void originCallback(const geographic_msgs::GeoPoint::ConstPtr& inmsg)
+{
+    if(!initializedMOOS)
+    {
+        LatOrigin = inmsg->latitude;
+        LongOrigin = inmsg->longitude;
+        startMOOS();
+    }
 }
 
 void positionCallback(const geographic_msgs::GeoPointStamped::ConstPtr& inmsg)
 {
-    //std::cerr << "positionCallback: " <<  initializedMOOS << std::endl;
-    if(!initializedMOOS)
+    if(initializedMOOS)
     {
-        LatOrigin = inmsg->position.latitude;
-        LongOrigin = inmsg->position.longitude;
-        startMOOS();
+        double t = inmsg->header.stamp.toSec();
+        //comms.Notify("NAV_LAT",inmsg->position.latitude,t);
+        //comms.Notify("NAV_LONG",inmsg->position.longitude,t);
+        
+        gz4d::Point<double> position = geoReference.toLocal(gz4d::geo::Point<double,gz4d::geo::WGS84::ECEF>(gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon>(inmsg->position.latitude,inmsg->position.longitude,0.0)));
+        
+        comms.Notify("NAV_X",position[0],t);
+        comms.Notify("NAV_Y",position[1],t);
     }
-    double t = inmsg->header.stamp.toSec();
-    comms.Notify("NAV_LAT",inmsg->position.latitude,t);
-    comms.Notify("NAV_LONG",inmsg->position.longitude,t);
-    
-    gz4d::Point<double> position = geoReference.toLocal(gz4d::geo::Point<double,gz4d::geo::WGS84::ECEF>(gz4d::geo::Point<double,gz4d::geo::WGS84::LatLon>(inmsg->position.latitude,inmsg->position.longitude,0.0)));
-    
-    comms.Notify("NAV_X",position[0],t);
-    comms.Notify("NAV_Y",position[1],t);
     log_bag.write("/position",ros::Time::now(),*inmsg);
 
 }
@@ -223,18 +227,6 @@ void appcastRequestCallback(const ros::WallTimerEvent& event)
     comms.Notify("APPCAST_REQ",req.str());
 }
 
-void originCallback(const ros::WallTimerEvent& event)
-{
-    if(initializedMOOS)
-    {
-        geographic_msgs::GeoPoint gp;
-        gp.latitude = LatOrigin;
-        gp.longitude = LongOrigin;
-        origin_pub.publish(gp);
-        log_bag.write("/moos/origin",ros::Time::now(),gp);
-    }
-}
-
 int main(int argc, char **argv)
 {
     last_lat_time = 0.0;
@@ -248,7 +240,6 @@ int main(int argc, char **argv)
     desired_heading_pub = n.advertise<mission_plan::NavEulerStamped>("/moos/desired_heading",1);
     desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
     appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
-    origin_pub = n.advertise<geographic_msgs::GeoPoint>("/moos/origin",1);
     
     ros::Subscriber psub = n.subscribe("/position",10,positionCallback);
     ros::Subscriber hsub = n.subscribe("/heading",10,headingCallback);
@@ -257,6 +248,7 @@ int main(int argc, char **argv)
     ros::Subscriber loiterUpdatesub = n.subscribe("/moos/loiter_updates",10,loiterUpdateCallback);
     ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
     ros::Subscriber helmmodesub = n.subscribe("/helm_mode",10,helmModeCallback);
+    ros::Subscriber originsub = n.subscribe("/origin",10,originCallback);
     
     boost::posix_time::ptime now = ros::WallTime::now().toBoost();
     std::string iso_now = std::regex_replace(boost::posix_time::to_iso_extended_string(now),std::regex(":"),"-");
@@ -265,8 +257,6 @@ int main(int argc, char **argv)
     log_bag.open(log_filename, rosbag::bagmode::Write);
     
     ros::WallTimer appcastRequestTimer = n.createWallTimer(ros::WallDuration(1.0),appcastRequestCallback);
-    
-    ros::WallTimer originTimer = n.createWallTimer(ros::WallDuration(1.0),originCallback);
 
     comms.SetOnMailCallBack(OnMail,&comms);
     comms.SetOnConnectCallBack(OnConnect,&comms);
