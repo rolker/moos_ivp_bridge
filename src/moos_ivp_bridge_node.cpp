@@ -24,6 +24,9 @@
 ros::Publisher desired_heading_pub;
 ros::Publisher desired_speed_pub;
 ros::Publisher appcast_pub;
+ros::Publisher view_point_pub;
+ros::Publisher view_polygon_pub;
+ros::Publisher view_seglist_pub;
 
 MutexProtectedBagWriter log_bag;
 
@@ -37,6 +40,9 @@ bool OnConnect(void * param)
     c->Register("DESIRED_HEADING",0.0);
     c->Register("DESIRED_SPEED",0.0);
     c->Register("APPCAST",0.0);
+    c->Register("VIEW_POINT",0.0);
+    c->Register("VIEW_POLYGON",0.0);
+    c->Register("VIEW_SEGLIST",0.0);
     comms.Notify("MOOS_MANUAL_OVERIDE","false");
     return true;
 }
@@ -74,6 +80,27 @@ bool OnMail(void *param)
             s.data = m.GetAsString();
             appcast_pub.publish(s);
             log_bag.write("/moos/appcast",ros::Time::now(),s);
+        }
+        if(m.IsName("VIEW_POINT"))
+        {
+            std_msgs::String s;
+            s.data = m.GetAsString();
+            view_point_pub.publish(s);
+            log_bag.write("/moos/view_point",ros::Time::now(),s);
+        }
+        if(m.IsName("VIEW_POLYGON"))
+        {
+            std_msgs::String s;
+            s.data = m.GetAsString();
+            view_polygon_pub.publish(s);
+            log_bag.write("/moos/view_polygon",ros::Time::now(),s);
+        }
+        if(m.IsName("VIEW_SEGLIST"))
+        {
+            std_msgs::String s;
+            s.data = m.GetAsString();
+            view_seglist_pub.publish(s);
+            log_bag.write("/moos/view_seglist",ros::Time::now(),s);
         }
     }
     
@@ -195,6 +222,9 @@ int main(int argc, char **argv)
     desired_heading_pub = n.advertise<mission_plan::NavEulerStamped>("/moos/desired_heading",1);
     desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
     appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
+    view_point_pub = n.advertise<std_msgs::String>("/moos/view_point",1);
+    view_polygon_pub = n.advertise<std_msgs::String>("/moos/view_polygon",1);
+    view_seglist_pub = n.advertise<std_msgs::String>("/moos/view_seglist",1);
     
     ros::Subscriber psub = n.subscribe("/position_map",10,positionCallback);
     ros::Subscriber hsub = n.subscribe("/heading",10,headingCallback);
