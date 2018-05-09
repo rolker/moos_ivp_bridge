@@ -9,11 +9,11 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geographic_msgs
-  mission_plan
   roscpp
   roslib
   rosbag
   project11
+  marine_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -112,7 +112,7 @@ include_directories ( ${MOOS_INCLUDE_DIRS} ${MOOS_DEPEND_INCLUDE_DIRS} )
 catkin_package(
   #INCLUDE_DIRS include
 #  LIBRARIES moos_ivp_bridge
-  CATKIN_DEPENDS project11 geographic_msgs mission_plan roscpp
+  CATKIN_DEPENDS project11 geographic_msgs marine_msgs roscpp
 #  DEPENDS system_lib
 )
 
@@ -152,7 +152,7 @@ include_directories(
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(${PROJECT_NAME}_node mission_plan_gencpp)
+add_dependencies(${PROJECT_NAME}_node asv_msgs_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(${PROJECT_NAME}_node

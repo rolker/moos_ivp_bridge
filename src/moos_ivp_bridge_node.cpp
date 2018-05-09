@@ -10,7 +10,7 @@
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
 #include "geometry_msgs/TwistStamped.h"
-#include "mission_plan/NavEulerStamped.h"
+#include "marine_msgs/NavEulerStamped.h"
 #include "MOOS/libMOOS/Comms/MOOSAsyncCommClient.h"
 
 #include "project11/gz4d_geo.h"
@@ -58,7 +58,7 @@ bool OnMail(void *param)
         auto t = m.GetTime();
         if(m.IsName("DESIRED_HEADING"))
         {
-            mission_plan::NavEulerStamped nes;
+            marine_msgs::NavEulerStamped nes;
             nes.orientation.heading = m.GetDouble();
             nes.header.stamp.fromSec(t);
             desired_heading_pub.publish(nes);
@@ -164,7 +164,7 @@ void positionCallback(const geometry_msgs::PoseStamped::ConstPtr& inmsg)
 
 }
 
-void headingCallback(const mission_plan::NavEulerStamped::ConstPtr& inmsg)
+void headingCallback(const marine_msgs::NavEulerStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
     comms.Notify("NAV_HEADING",inmsg->orientation.heading,t);
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "moos_ivp_bridge_node");
     ros::NodeHandle n;
     
-    desired_heading_pub = n.advertise<mission_plan::NavEulerStamped>("/moos/desired_heading",1);
+    desired_heading_pub = n.advertise<marine_msgs::NavEulerStamped>("/moos/desired_heading",1);
     desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
     appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
     view_point_pub = n.advertise<std_msgs::String>("/moos/view_point",1);
