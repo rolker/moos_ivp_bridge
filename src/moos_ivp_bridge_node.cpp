@@ -12,6 +12,7 @@
 #include "geometry_msgs/TwistStamped.h"
 #include "marine_msgs/NavEulerStamped.h"
 #include "MOOS/libMOOS/Comms/MOOSAsyncCommClient.h"
+#include "geographic_msgs/GeoPoint.h"
 
 #include "project11/gz4d_geo.h"
 #include "project11/mutex_protected_bag_writer.h"
@@ -214,6 +215,12 @@ void appcastRequestCallback(const ros::WallTimerEvent& event)
     comms.Notify("APPCAST_REQ",req.str());
 }
 
+void originCallback(const geographic_msgs::GeoPoint::ConstPtr& inmsg)
+{
+    comms.Notify("LatOrigin", inmsg->latitude);
+    comms.Notify("LongOrigin", inmsg->longitude);
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "moos_ivp_bridge_node");
@@ -233,6 +240,7 @@ int main(int argc, char **argv)
     ros::Subscriber loiterUpdatesub = n.subscribe("/moos/loiter_updates",10,loiterUpdateCallback);
     ros::Subscriber activesub = n.subscribe("/active",10,activeCallback);
     ros::Subscriber helmmodesub = n.subscribe("/helm_mode",10,helmModeCallback);
+    ros::Subscriber originsub = n.subscribe("/origin",10,originCallback);
     
     boost::posix_time::ptime now = ros::WallTime::now().toBoost();
     std::string iso_now = std::regex_replace(boost::posix_time::to_iso_extended_string(now),std::regex(":"),"-");
