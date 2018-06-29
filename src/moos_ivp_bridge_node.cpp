@@ -175,7 +175,8 @@ void headingCallback(const marine_msgs::NavEulerStamped::ConstPtr& inmsg)
 void sogCallback(const geometry_msgs::TwistStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
-    comms.Notify("NAV_SPEED",inmsg->twist.linear.x,t);
+    double sog = sqrt( inmsg->twist.linear.x*inmsg->twist.linear.x + inmsg->twist.linear.y*inmsg->twist.linear.y);
+    comms.Notify("NAV_SPEED",sog,t);
     log_bag.write("/sog",ros::Time::now(),*inmsg);
 }
 
