@@ -113,6 +113,19 @@ bool OnMail(void *param)
 
 void startMOOS()
 {
+
+  bool hasOrigin = false;
+  while(!hasOrigin){
+    // This sleep is necessary, even in simulation when the "fix" is immediate.
+    ros::Duration(5).sleep();
+    ros::spinOnce();
+    if( (LatOrigin.compare("") != 0) && (LongOrigin.compare("") != 0)) {
+      hasOrigin = true;
+    }
+    ROS_INFO("Waiting for GPS Fix to set Lat/Long Origin...");
+  }
+  ROS_INFO("Have Lat/Lon Origin.");
+  
     std::string missionFileTemplate = ros::package::getPath("moos_ivp_bridge")+"/missions/ros.moos.template";
     std::string bhvFile = ros::package::getPath("moos_ivp_bridge")+"/missions/ros.bhv";
 
@@ -269,8 +282,6 @@ int main(int argc, char **argv)
     
     comms.Run("localhost",9000,"moos_ivp_bridge");
 
-    ros::Duration(5).sleep();
-    ros::spinOnce();
     startMOOS();
     ros::spin();    
 
