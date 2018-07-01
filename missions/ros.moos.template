@@ -13,6 +13,9 @@ TERM_REPORTING = true
 // Global log root directory
 GlobalLogPath = ./moos/
 
+// Lat and Long Origin
+LATLONORIGIN
+
 //------------------------------------------
 // Antler configuration  block
 ProcessConfig = ANTLER
@@ -26,6 +29,8 @@ ProcessConfig = ANTLER
   Run = MOOSDB          @ NewConsole = false
   Run = pLogger         @ NewConsole = false
   Run = pHelmIvP        @ NewConsole = false
+  Run = pENC_Contact	@ NewConsole = true
+  //Run = pENC_Print	@ NewConsole = false
 
   //Run = uSimMarine	    @ NewConsole = false
   //Run = pMarinePID      @ NewConsole = false
@@ -34,6 +39,11 @@ ProcessConfig = ANTLER
   //Run = pNodeReporter	  @ NewConsole = false
 }
 
+//------------------------------------------------
+#include plug_pENC_Contact.moos
+
+//------------------------------------------------
+#include plug_pENC_Print.moos
 
 //------------------------------------------
 // uProcessWatch config block
