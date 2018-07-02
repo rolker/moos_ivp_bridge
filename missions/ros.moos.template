@@ -22,14 +22,10 @@ ProcessConfig = ANTLER
 {
   MSBetweenLaunches = 200
 
-  //Run = MOOSDB          @ NewConsole = true
-  //Run = pLogger         @ NewConsole = true
-  //Run = pHelmIvP        @ NewConsole = true
-
   Run = MOOSDB          @ NewConsole = false
   Run = pLogger         @ NewConsole = false
   Run = pHelmIvP        @ NewConsole = false
-  Run = pENC_Contact	@ NewConsole = true
+  //Run = pENC_Contact	@ NewConsole = true
   //Run = pENC_Print	@ NewConsole = false
 
   //Run = uSimMarine	    @ NewConsole = false
