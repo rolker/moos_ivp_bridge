@@ -195,7 +195,9 @@ void sogCallback(const geometry_msgs::TwistStamped::ConstPtr& inmsg)
     if (simulatedTime)
         t = ros::WallTime::now().toSec();
 
-    comms.Notify("NAV_SPEED",inmsg->twist.linear.x,t);
+    double sog = sqrt( inmsg->twist.linear.x*inmsg->twist.linear.x + inmsg->twist.linear.y*inmsg->twist.linear.y);
+    comms.Notify("NAV_SPEED",sog,t);
+
     if(ros::Time::now() > ros::TIME_MIN)
         log_bag.write("/sog",ros::Time::now(),*inmsg);
 }
