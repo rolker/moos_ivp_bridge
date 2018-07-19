@@ -34,6 +34,7 @@ MutexProtectedBagWriter log_bag;
 MOOS::MOOSAsyncCommClient comms;
 
 bool initializedMOOS = false;
+bool simulatedTime = false;
 
 bool OnConnect(void * param)
 {
@@ -57,13 +58,16 @@ bool OnMail(void *param)
     {
         
         auto t = m.GetTime();
+        if(simulatedTime)
+            t = ros::Time::now().toSec();
         if(m.IsName("DESIRED_HEADING"))
         {
             marine_msgs::NavEulerStamped nes;
             nes.orientation.heading = m.GetDouble();
             nes.header.stamp.fromSec(t);
             desired_heading_pub.publish(nes);
-            log_bag.write("/moos/desired_heading",ros::Time::now(),nes);
+            if(ros::Time::now() > ros::TIME_MIN)
+                log_bag.write("/moos/desired_heading",ros::Time::now(),nes);
 
         }
         if(m.IsName("DESIRED_SPEED"))
@@ -73,35 +77,40 @@ bool OnMail(void *param)
             ts.header.stamp.fromSec(t);
             desired_speed_pub.publish(ts);
             //std::cerr << ts << std::endl;
-            log_bag.write("/moos/desired_speed",ros::Time::now(),ts);
+            if(ros::Time::now() > ros::TIME_MIN)
+                log_bag.write("/moos/desired_speed",ros::Time::now(),ts);
         }
         if(m.IsName("APPCAST"))
         {
             std_msgs::String s;
             s.data = m.GetAsString();
             appcast_pub.publish(s);
-            log_bag.write("/moos/appcast",ros::Time::now(),s);
+            if(ros::Time::now() > ros::TIME_MIN)
+                log_bag.write("/moos/appcast",ros::Time::now(),s);
         }
         if(m.IsName("VIEW_POINT"))
         {
             std_msgs::String s;
             s.data = m.GetAsString();
             view_point_pub.publish(s);
-            log_bag.write("/moos/view_point",ros::Time::now(),s);
+            if(ros::Time::now() > ros::TIME_MIN)
+                log_bag.write("/moos/view_point",ros::Time::now(),s);
         }
         if(m.IsName("VIEW_POLYGON"))
         {
             std_msgs::String s;
             s.data = m.GetAsString();
             view_polygon_pub.publish(s);
-            log_bag.write("/moos/view_polygon",ros::Time::now(),s);
+            if(ros::Time::now() > ros::TIME_MIN)
+                log_bag.write("/moos/view_polygon",ros::Time::now(),s);
         }
         if(m.IsName("VIEW_SEGLIST"))
         {
             std_msgs::String s;
             s.data = m.GetAsString();
             view_seglist_pub.publish(s);
-            log_bag.write("/moos/view_seglist",ros::Time::now(),s);
+            if(ros::Time::now() > ros::TIME_MIN)
+                log_bag.write("/moos/view_seglist",ros::Time::now(),s);
         }
     }
     
@@ -156,39 +165,53 @@ void positionCallback(const geometry_msgs::PoseStamped::ConstPtr& inmsg)
 {
     if(initializedMOOS)
     {
+        // trying to solve clock skew errors in moos when simulating time
         double t = inmsg->header.stamp.toSec();
+        if (simulatedTime)
+            t = ros::WallTime::now().toSec();
         
         comms.Notify("NAV_X",inmsg->pose.position.x,t);
         comms.Notify("NAV_Y",inmsg->pose.position.y,t);
     }
-    log_bag.write("/position_map",ros::Time::now(),*inmsg);
+    if(ros::Time::now() > ros::TIME_MIN)
+        log_bag.write("/position_map",ros::Time::now(),*inmsg);
 
 }
 
 void headingCallback(const marine_msgs::NavEulerStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
+    if(simulatedTime)
+        t = ros::WallTime::now().toSec();
+
     comms.Notify("NAV_HEADING",inmsg->orientation.heading,t);
-    log_bag.write("/heading",ros::Time::now(),*inmsg);
+    if(ros::Time::now() > ros::TIME_MIN)
+        log_bag.write("/heading",ros::Time::now(),*inmsg);
 }
 
 void sogCallback(const geometry_msgs::TwistStamped::ConstPtr& inmsg)
 {
     double t = inmsg->header.stamp.toSec();
+    if (simulatedTime)
+        t = ros::WallTime::now().toSec();
+
     comms.Notify("NAV_SPEED",inmsg->twist.linear.x,t);
-    log_bag.write("/sog",ros::Time::now(),*inmsg);
+    if(ros::Time::now() > ros::TIME_MIN)
+        log_bag.write("/sog",ros::Time::now(),*inmsg);
 }
 
 void waypointUpdateCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("WPT_UPDATE",inmsg->data);
-    log_bag.write("/moos/wpt_updates",ros::Time::now(),*inmsg);
+    if(ros::Time::now() > ros::TIME_MIN)
+        log_bag.write("/moos/wpt_updates",ros::Time::now(),*inmsg);
 }
 
 void loiterUpdateCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("LOITER_UPDATE",inmsg->data);
-    log_bag.write("/moos/loiter_updates",ros::Time::now(),*inmsg);
+    if(ros::Time::now() > ros::TIME_MIN)
+        log_bag.write("/moos/loiter_updates",ros::Time::now(),*inmsg);
 }
 
 void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
@@ -197,13 +220,15 @@ void activeCallback(const std_msgs::Bool::ConstPtr& inmsg)
         comms.Notify("ACTIVE","true");
     else
         comms.Notify("ACTIVE","false");
-    log_bag.write("/active",ros::Time::now(),*inmsg);
+    if(ros::Time::now() > ros::TIME_MIN)
+        log_bag.write("/active",ros::Time::now(),*inmsg);
 }
 
 void helmModeCallback(const std_msgs::String::ConstPtr& inmsg)
 {
     comms.Notify("HELM_MODE",inmsg->data);
-    log_bag.write("/helm_mode",ros::Time::now(),*inmsg);
+    if(ros::Time::now() > ros::TIME_MIN)
+        log_bag.write("/helm_mode",ros::Time::now(),*inmsg);
 }
 
 
@@ -225,6 +250,8 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "moos_ivp_bridge_node");
     ros::NodeHandle n;
+    n.param<bool>("/use_sim_time", simulatedTime, false);
+    
     
     desired_heading_pub = n.advertise<marine_msgs::NavEulerStamped>("/moos/desired_heading",1);
     desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
