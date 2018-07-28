@@ -19,7 +19,7 @@ Behavior = BHV_Waypoint
   UPDATES   = WPT_UPDATE
   perpetual = true
 
-               lead = 8
+               lead = 12
         lead_damper = 2
               speed = 5.0   // meters per second
        capture_line = false
@@ -47,8 +47,8 @@ Behavior = BHV_Loiter
          speed = 1.0
      clockwise = false
         radius = 5.0
-     nm_radius = 25.0
-       polygon = format=radial, x=0, y=0, radius=5, pts=6, snap=1
+     nm_radius = 7.0
+       polygon = format=radial, x=0, y=0, radius=7, pts=6, snap=1
   visual_hints = nextpt_color=yellow, nextpt_lcolor=khaki
   visual_hints = edge_color=white, vertex_color=invisible
   visual_hints = edge_size=1, vertex_size=0, label=LOITER_POLYGON
