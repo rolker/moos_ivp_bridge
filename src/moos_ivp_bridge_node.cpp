@@ -9,6 +9,7 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
+#include "std_msgs/Int32.h"
 #include "geometry_msgs/TwistStamped.h"
 #include "mission_plan/NavEulerStamped.h"
 #include "MOOS/libMOOS/Comms/MOOSAsyncCommClient.h"
@@ -21,9 +22,11 @@
 #include <iomanip>
 #include "boost/date_time/posix_time/posix_time.hpp"
 
+ros::Publisher waypoint_index_pub;
 ros::Publisher desired_heading_pub;
 ros::Publisher desired_speed_pub;
 ros::Publisher appcast_pub;
+ros::Publisher ivphelm_update_result_pub;
 
 MutexProtectedBagWriter log_bag;
 
@@ -34,9 +37,11 @@ bool initializedMOOS = false;
 bool OnConnect(void * param)
 {
     CMOOSCommClient* c = reinterpret_cast<CMOOSCommClient*>(param);
+    c->Register("WPT_INDEX", 0.0);
     c->Register("DESIRED_HEADING",0.0);
     c->Register("DESIRED_SPEED",0.0);
     c->Register("APPCAST",0.0);
+    c->Register("IVPHELM_UPDATE_RESULT",0.0);
     comms.Notify("MOOS_MANUAL_OVERIDE","false");
     return true;
 }
@@ -75,6 +80,22 @@ bool OnMail(void *param)
             appcast_pub.publish(s);
             log_bag.write("/moos/appcast",ros::Time::now(),s);
         }
+	// LMD ADDED!
+	if(m.IsName("WPT_INDEX"))
+        {
+            std_msgs::Int32 wptIndex;
+            wptIndex.data = m.GetDouble();
+            waypoint_index_pub.publish(wptIndex);
+            log_bag.write("/moos/wpt_index",ros::Time::now(),wptIndex);
+
+        }
+        if(m.IsName("IVPHELM_UPDATE_RESULT"))
+	{
+            std_msgs::String s;
+            s.data = m.GetAsString();
+            ivphelm_update_result_pub.publish(s);
+            log_bag.write("/moos/ivphelm_update_result",ros::Time::now(),s);
+ 	}
     }
     
     return true;
@@ -195,7 +216,10 @@ int main(int argc, char **argv)
     desired_heading_pub = n.advertise<mission_plan::NavEulerStamped>("/moos/desired_heading",1);
     desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
     appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
-    
+    // LMD ADDED!
+    waypoint_index_pub = n.advertise<std_msgs::Int32>("/moos/wpt_index",1);
+    ivphelm_update_result_pub = n.advertise<std_msgs::String>("/moos/ivphelm_update_result",1);
+
     ros::Subscriber psub = n.subscribe("/position_map",10,positionCallback);
     ros::Subscriber hsub = n.subscribe("/heading",10,headingCallback);
     ros::Subscriber sogsub = n.subscribe("/sog",10,sogCallback);
