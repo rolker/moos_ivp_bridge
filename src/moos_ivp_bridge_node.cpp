@@ -72,7 +72,7 @@ bool OnMail(void *param)
             nes.header.stamp.fromSec(t);
             desired_heading_pub.publish(nes);
             if(ros::Time::now() > ros::TIME_MIN)
-                log_bag.write("/moos/desired_heading",ros::Time::now(),nes);
+                log_bag.write("/project11/desired_heading",ros::Time::now(),nes);
 
         }
         if(m.IsName("DESIRED_SPEED"))
@@ -83,7 +83,7 @@ bool OnMail(void *param)
             desired_speed_pub.publish(ts);
             //std::cerr << ts << std::endl;
             if(ros::Time::now() > ros::TIME_MIN)
-                log_bag.write("/moos/desired_speed",ros::Time::now(),ts);
+                log_bag.write("/project11/desired_speed",ros::Time::now(),ts);
         }
         if(m.IsName("APPCAST"))
         {
@@ -276,8 +276,8 @@ int main(int argc, char **argv)
     n.param<bool>("/use_sim_time", simulatedTime, false);
     
     
-    desired_heading_pub = n.advertise<marine_msgs::NavEulerStamped>("/moos/desired_heading",1);
-    desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/moos/desired_speed",1);
+    desired_heading_pub = n.advertise<marine_msgs::NavEulerStamped>("/project11/desired_heading",1);
+    desired_speed_pub = n.advertise<geometry_msgs::TwistStamped>("/project11/desired_speed",1);
     appcast_pub = n.advertise<std_msgs::String>("/moos/appcast",1);
     view_point_pub = n.advertise<std_msgs::String>("/moos/view_point",1);
     view_polygon_pub = n.advertise<std_msgs::String>("/moos/view_polygon",1);
